@@ -436,6 +436,12 @@ function unwrapHighlights(container) {
   });
 }
 
+function getQuestionLabel(question) {
+  const text = (question?.stem || "").replace(/\s+/g, " ").trim();
+  if (!text) return `Question #${question?.id ?? ""}`;
+  return text.length > 72 ? `${text.slice(0, 72)}…` : text;
+}
+
 function App() {
   const [activeTab, setActiveTab] = usePersistentState("sat_active_tab_v1", "question-bank");
   const [questions, setQuestions] = usePersistentState("sat_questions_v1", seedQuestions);
@@ -630,9 +636,7 @@ function App() {
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
-      const matchesSearch =
-        q.title.toLowerCase().includes(search.toLowerCase()) ||
-        q.stem.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = q.stem.toLowerCase().includes(search.toLowerCase());
       const matchesModule =
         selectedModule === "All Modules" || q.module === selectedModule;
       const matchesDifficulty =
@@ -667,7 +671,6 @@ function App() {
     const selectedIndex = Number(form.correctOptionIndex);
 
     return {
-      title: form.title.trim(),
       module: form.module,
       difficulty: form.difficulty,
       type: form.type,
@@ -681,7 +684,7 @@ function App() {
   };
 
   const validateQuestionPayload = (payload) => {
-    if (!payload.title || !payload.stem) return "Title and question text are required.";
+    if (!payload.stem) return "Question text is required.";
     if (payload.type === "Multiple Choice") {
       if (payload.options.length < 4 || payload.options.some((item) => !item.trim())) {
         return "Please fill all four answer choices.";
@@ -712,7 +715,6 @@ function App() {
     setEditingId(question.id);
     setActiveTab("question-bank");
     setForm({
-      title: question.title,
       module: question.module,
       difficulty: question.difficulty,
       type: question.type,
@@ -899,7 +901,7 @@ function App() {
       {
         id: Date.now(),
         questionId: question.id,
-        title: question.title,
+        label: getQuestionLabel(question),
         savedBy: "Global user save",
         module: question.module,
         difficulty: question.difficulty,
@@ -1288,7 +1290,6 @@ function App() {
 
   const getFilteredReviewQuestions = () => {
     const all = getAllSessionQuestions();
-
     if (reviewFilter === "correct") return all.filter((q) => isQuestionCorrect(q));
     if (reviewFilter === "wrong") {
       return all.filter((q) => {
@@ -1353,19 +1354,12 @@ function App() {
         <form className="question-form" onSubmit={handleSubmit}>
           <div className="grid two">
             <div>
-              <label>Question title</label>
-              <input value={form.title} onChange={(e) => handleChange("title", e.target.value)} />
-            </div>
-            <div>
               <label>Question type</label>
               <select value={form.type} onChange={(e) => handleChange("type", e.target.value)}>
                 <option>Multiple Choice</option>
                 <option>Free Response</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid two">
             <div>
               <label>Module</label>
               <select value={form.module} onChange={(e) => handleChange("module", e.target.value)}>
@@ -1375,6 +1369,9 @@ function App() {
                 <option>Math Module 2</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid two">
             <div>
               <label>Difficulty</label>
               <select value={form.difficulty} onChange={(e) => handleChange("difficulty", e.target.value)}>
@@ -1468,7 +1465,7 @@ function App() {
             <article className="question-card" key={question.id}>
               <div className="card-top">
                 <div>
-                  <h3>{question.title}</h3>
+                  <h3>{getQuestionLabel(question)}</h3>
                   <p className="muted">{question.stem}</p>
                 </div>
                 <div className="badges">
@@ -1515,7 +1512,7 @@ function App() {
                     className={alreadySelected ? "builder-item selected-builder-item" : "builder-item"}
                   >
                     <div className="builder-item-copy">
-                      <strong>{question.title}</strong>
+                      <strong>{getQuestionLabel(question)}</strong>
                       <p>{question.stem}</p>
                       <small>{question.type} • {question.difficulty}</small>
                     </div>
@@ -1543,7 +1540,7 @@ function App() {
                   return (
                     <div className="selected-row" key={`${moduleName}-${index}-${id}`}>
                       <div className="builder-item-copy">
-                        <strong>{index + 1}. {q.title}</strong>
+                        <strong>{index + 1}. {getQuestionLabel(q)}</strong>
                         <p>{q.stem}</p>
                         <small>{q.type}</small>
                       </div>
@@ -1675,7 +1672,7 @@ function App() {
           <article className="question-card" key={item.id}>
             <div className="card-top">
               <div>
-                <h3>{item.title}</h3>
+                <h3>{item.label || "Saved question"}</h3>
                 <p className="muted">Saved by: {item.savedBy}</p>
               </div>
               <div className="badges">
