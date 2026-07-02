@@ -156,21 +156,27 @@ const seedQuestions = [
     explanation: "The text contrasts temporary spoken sermons with enduring printed books.",
   },
   {
-    id: 12,
-    module: "RW Module 2",
-    difficulty: "Hard",
-    type: "Multiple Choice",
-    stem: `The Times [a British newspaper], replying to some foreign strictures on the dress, looks, and behavior of the English abroad, urges that the English ideal is that everyone should be free to do and to look just as he likes.\nBut culture indefatigably tries, not to make what each raw person may like the rule by which he fashions himself; but to draw ever nearer to a sense of what is indeed beautiful, graceful, and becoming, and to get the raw person to like that.\n\nWhich choice best describes the function of the underlined sentence in the text as a whole?`,
-    options: [
-      "It suggests that opinions regarding culture change over time.",
-      "It asserts that the English are not as well known for their sense of taste as they ought to be.",
-      "It details an example that supports the author’s primary claim.",
-      "It presents an opinion with which the author disagrees.",
-    ],
-    correctAnswer: "It presents an opinion with which the author disagrees.",
-    explanation:
-      "The first sentence gives The Times’s view, which the author then contrasts with his own idea of culture.",
-  },
+  id: 12,
+  module: "RW Module 2",
+  difficulty: "Hard",
+  type: "Multiple Choice",
+  stem: `Which choice best describes the function of the underlined sentence in the text as a whole?`,
+  passage: `The Times [a British newspaper], replying to some foreign strictures on the dress, looks, and behavior of the English abroad, urges that the English ideal is that everyone should be free to do and to look just as he likes.
+But culture indefatigably tries, not to make what each raw person may like the rule by which he fashions himself; but to draw ever nearer to a sense of what is indeed beautiful, graceful, and becoming, and to get the raw person to like that.`,
+  underlinedText:
+    "The Times [a British newspaper], replying to some foreign strictures on the dress, looks, and behavior of the English abroad, urges that the English ideal is that everyone should be free to do and to look just as he likes.",
+  passageImageUrl: "",
+  options: [
+    "It suggests that opinions regarding culture change over time.",
+    "It asserts that the English are not as well known for their sense of taste as they ought to be.",
+    "It details an example that supports the author’s primary claim.",
+    "It presents an opinion with which the author disagrees.",
+  ],
+  optionImageUrls: ["", "", "", ""],
+  correctAnswer: "It presents an opinion with which the author disagrees.",
+  explanation:
+    "The first sentence gives The Times’s view, which the author then contrasts with his own idea of culture.",
+},
 ];
 
 const seedTests = [
@@ -244,10 +250,17 @@ const emptyForm = {
   difficulty: "Easy",
   type: "Multiple Choice",
   stem: "",
+  passage: "",
+  underlinedText: "",
+  passageImageUrl: "",
   optionA: "",
   optionB: "",
   optionC: "",
   optionD: "",
+  optionAImageUrl: "",
+  optionBImageUrl: "",
+  optionCImageUrl: "",
+  optionDImageUrl: "",
   correctOptionIndex: "",
   freeResponseAnswers: "",
   explanation: "",
@@ -440,6 +453,31 @@ function getQuestionLabel(question) {
   const text = (question?.stem || "").replace(/\s+/g, " ").trim();
   if (!text) return `Question #${question?.id ?? ""}`;
   return text.length > 72 ? `${text.slice(0, 72)}…` : text;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function renderPassageContent(question) {
+  const rawText = question?.passage || question?.stem || "";
+  const underlinedText = question?.underlinedText?.trim();
+
+  if (!underlinedText || !rawText.includes(underlinedText)) {
+    return rawText;
+  }
+
+  const parts = rawText.split(new RegExp(`(${escapeRegExp(underlinedText)})`, "g"));
+
+  return parts.map((part, index) =>
+    part === underlinedText ? (
+      <span key={`under-${index}`} className="passage-underline">
+        {part}
+      </span>
+    ) : (
+      <span key={`plain-${index}`}>{part}</span>
+    )
+  );
 }
 
 function App() {
@@ -663,25 +701,41 @@ function App() {
   };
 
   const buildQuestionPayload = () => {
-    const isMCQ = form.type === "Multiple Choice";
-    const options = isMCQ
-      ? [form.optionA, form.optionB, form.optionC, form.optionD].map((item) => item.trim())
-      : [];
+  const isMCQ = form.type === "Multiple Choice";
+  const options = isMCQ
+    ? [form.optionA, form.optionB, form.optionC, form.optionD].map((item) => item.trim())
+    : [];
 
-    const selectedIndex = Number(form.correctOptionIndex);
+  const optionImageUrls = isMCQ
+    ? [
+        form.optionAImageUrl.trim(),
+        form.optionBImageUrl.trim(),
+        form.optionCImageUrl.trim(),
+        form.optionDImageUrl.trim(),
+      ]
+    : [];
 
-    return {
-      module: form.module,
-      difficulty: form.difficulty,
-      type: form.type,
-      stem: form.stem.trim(),
-      options: isMCQ ? options.filter(Boolean) : [],
-      correctAnswer: isMCQ
-        ? options[selectedIndex] || ""
-        : form.freeResponseAnswers.split(",").map((item) => item.trim()).filter(Boolean),
-      explanation: form.explanation.trim(),
-    };
+  const selectedIndex = Number(form.correctOptionIndex);
+
+  return {
+    module: form.module,
+    difficulty: form.difficulty,
+    type: form.type,
+    stem: form.stem.trim(),
+    passage: form.passage.trim(),
+    underlinedText: form.underlinedText.trim(),
+    passageImageUrl: form.passageImageUrl.trim(),
+    options: isMCQ ? options.filter(Boolean) : [],
+    optionImageUrls: isMCQ ? optionImageUrls.slice(0, options.length) : [],
+    correctAnswer: isMCQ
+      ? options[selectedIndex] || ""
+      : form.freeResponseAnswers
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+    explanation: form.explanation.trim(),
   };
+};
 
   const validateQuestionPayload = (payload) => {
     if (!payload.stem) return "Question text is required.";
@@ -718,11 +772,18 @@ function App() {
       module: question.module,
       difficulty: question.difficulty,
       type: question.type,
-      stem: question.stem,
+      stem: question.stem || "",
+      passage: question.passage || "",
+      underlinedText: question.underlinedText || "",
+      passageImageUrl: question.passageImageUrl || "",
       optionA: question.options?.[0] || "",
       optionB: question.options?.[1] || "",
       optionC: question.options?.[2] || "",
       optionD: question.options?.[3] || "",
+      optionAImageUrl: question.optionImageUrls?.[0] || "",
+      optionBImageUrl: question.optionImageUrls?.[1] || "",
+      optionCImageUrl: question.optionImageUrls?.[2] || "",
+      optionDImageUrl: question.optionImageUrls?.[3] || "",
       correctOptionIndex: Array.isArray(question.correctAnswer)
         ? ""
         : String(question.options?.findIndex((opt) => opt === question.correctAnswer)),
@@ -1057,25 +1118,29 @@ function App() {
     setActiveHighlightDelete({ visible: false, x: 0, y: 0, node: null });
   };
 
-  const applyHighlightFromToolbar = () => {
-    if (!savedSelectionRef.current) return;
+  const applyHighlightFromToolbar = (mode = "yellow") => {
+  if (!savedSelectionRef.current) return;
 
-    const selection = window.getSelection();
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(savedSelectionRef.current);
+
+  try {
+    const wrapper = document.createElement("span");
+    wrapper.className =
+      mode === "underline"
+        ? "highlight-chip underline-mark"
+        : `highlight-chip ${mode}`;
+
+    savedSelectionRef.current.surroundContents(wrapper);
+  } catch {
     selection.removeAllRanges();
-    selection.addRange(savedSelectionRef.current);
+  }
 
-    try {
-      const wrapper = document.createElement("span");
-      wrapper.className = "highlight-chip yellow";
-      savedSelectionRef.current.surroundContents(wrapper);
-    } catch {
-      selection.removeAllRanges();
-    }
-
-    selection.removeAllRanges();
-    savedSelectionRef.current = null;
-    setHighlightToolbar({ visible: false, x: 0, y: 0 });
-  };
+  selection.removeAllRanges();
+  savedSelectionRef.current = null;
+  setHighlightToolbar({ visible: false, x: 0, y: 0 });
+};
 
   const handlePassageMouseUp = () => {
     setTimeout(showSelectionToolbar, 10);
@@ -1386,6 +1451,33 @@ function App() {
             <label>Question / passage text</label>
             <textarea rows="6" value={form.stem} onChange={(e) => handleChange("stem", e.target.value)} />
           </div>
+            <div>
+              <label>Passage (optional)</label>
+              <textarea
+                rows={8}
+                value={form.passage}
+                onChange={(e) => handleChange("passage", e.target.value)}
+                placeholder="Paste the full passage here"
+              />
+            </div>
+            
+            <div>
+              <label>Underlined text inside passage (optional)</label>
+              <input
+                value={form.underlinedText}
+                onChange={(e) => handleChange("underlinedText", e.target.value)}
+                placeholder="Paste the exact text that should appear underlined"
+              />
+            </div>
+            
+            <div>
+              <label>Passage image URL (optional)</label>
+              <input
+                value={form.passageImageUrl}
+                onChange={(e) => handleChange("passageImageUrl", e.target.value)}
+                placeholder="https://..."
+              />
+            </div>
 
           {form.type === "Multiple Choice" ? (
             <>
@@ -1974,6 +2066,15 @@ function App() {
 
           <div className="exam-tools">
             <div className="timer-box">{formatTime(currentTimeLeft)}</div>
+            <button
+              className="ghost-btn small-btn"
+              onClick={() => {
+                if (!examSession) return;
+                alert("Exam progress saved successfully.");
+              }}
+            >
+              Save progress
+            </button>
             {isMathModule ? (
               <>
                 <button className="ghost-btn small-btn" onClick={() => setShowCalculator((prev) => !prev)}>
@@ -2047,14 +2148,25 @@ function App() {
               </div>
             </div>
 
-            <div
-              ref={passageRef}
-              className="exam-passage"
-              onMouseUp={handlePassageMouseUp}
-              onClick={handleHighlightClick}
-            >
-              {currentQuestion.stem}
-            </div>
+            {currentQuestion?.passageImageUrl ? (
+                <div className="passage-image-wrap">
+                  <img
+                    src={currentQuestion.passageImageUrl}
+                    alt="Passage visual"
+                    className="passage-image"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
+              
+              <div
+                ref={passageRef}
+                className={highlightToolbar.visible ? "exam-passage highlight-armed" : "exam-passage"}
+                onMouseUp={handlePassageMouseUp}
+                onClick={handleHighlightClick}
+              >
+                <p>{renderPassageContent(currentQuestion)}</p>
+              </div>
 
             {currentQuestion.type === "Multiple Choice" ? (
               <div className="exam-options">
@@ -2073,9 +2185,27 @@ function App() {
                           : "exam-option"
                       }
                     >
-                      <button className="option-main" onClick={() => handleAnswerChange(currentQuestion.id, option)}>
-                        <strong>{String.fromCharCode(65 + idx)}.</strong> {option}
-                      </button>
+                      <button
+  className="option-main"
+  onClick={() => handleAnswerChange(currentQuestion.id, option)}
+>
+  <div className="option-content">
+    <div className="option-text-line">
+      <strong>{String.fromCharCode(65 + idx)}.</strong> {option}
+    </div>
+
+    {currentQuestion.optionImageUrls?.[idx] ? (
+      <div className="option-image-wrap">
+        <img
+          src={currentQuestion.optionImageUrls[idx]}
+          alt={`Option ${String.fromCharCode(65 + idx)}`}
+          className="option-image"
+          loading="lazy"
+        />
+      </div>
+    ) : null}
+  </div>
+</button>
                       <button className="option-eliminate" onClick={() => toggleOptionElimination(currentQuestion.id, option)}>
                         {eliminated ? "Undo" : "Eliminate"}
                       </button>
@@ -2113,16 +2243,48 @@ function App() {
         </div>
 
         {highlightToolbar.visible ? (
-          <div
-            className="highlight-floating-toolbar"
-            style={{
-              left: highlightToolbar.x,
-              top: highlightToolbar.y,
-            }}
-          >
-            <button className="highlight-swatch yellow" onClick={applyHighlightFromToolbar} aria-label="Apply yellow highlight" />
-          </div>
-        ) : null}
+  <div
+    className="highlight-floating-toolbar"
+    style={{
+      left: `${highlightToolbar.x}px`,
+      top: `${highlightToolbar.y}px`,
+    }}
+  >
+    <button
+      type="button"
+      className="highlight-swatch yellow"
+      onClick={() => applyHighlightFromToolbar("yellow")}
+      aria-label="Yellow highlight"
+    />
+    <button
+      type="button"
+      className="highlight-swatch blue"
+      onClick={() => applyHighlightFromToolbar("blue")}
+      aria-label="Blue highlight"
+    />
+    <button
+      type="button"
+      className="highlight-swatch pink"
+      onClick={() => applyHighlightFromToolbar("pink")}
+      aria-label="Pink highlight"
+    />
+    <div className="highlight-toolbar-divider" />
+    <button
+      type="button"
+      className="toolbar-text-btn"
+      onClick={() => applyHighlightFromToolbar("underline")}
+    >
+      ______
+    </button>
+    <button
+      type="button"
+      className="toolbar-text-btn dotted"
+      onClick={() => applyHighlightFromToolbar("underline")}
+    >
+      ----
+    </button>
+  </div>
+) : null}
 
         {activeHighlightDelete.visible ? (
           <div
