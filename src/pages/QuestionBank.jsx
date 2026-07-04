@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { moduleColor } from '../lib/colors'
 
 const MODULES = ['RW Module 1', 'RW Module 2', 'Math Module 1', 'Math Module 2']
 
@@ -65,12 +66,12 @@ export default function QuestionBank() {
     <div className="max-w-4xl mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Question Bank</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900">Question Bank</h1>
           <p className="text-slate-500 text-sm mt-1">{questions.length} questions</p>
         </div>
         <button
           onClick={() => { setForm(emptyForm()); setEditingId(null); setShowForm(true) }}
-          className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-700"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:opacity-90 shadow-md shadow-blue-100"
         >
           + Add Question
         </button>
@@ -81,12 +82,12 @@ export default function QuestionBank() {
           placeholder="Search questions..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
         <select
           value={moduleFilter}
           onChange={e => setModuleFilter(e.target.value)}
-          className="border border-slate-300 rounded-lg px-4 py-2.5 text-sm"
+          className="border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-white"
         >
           <option>All</option>
           {MODULES.map(m => <option key={m}>{m}</option>)}
@@ -94,7 +95,7 @@ export default function QuestionBank() {
       </div>
 
       {showForm && (
-        <div className="border border-slate-200 rounded-xl p-6 mb-6 bg-white shadow-sm">
+        <div className="border border-slate-200 rounded-2xl p-6 mb-6 bg-white shadow-lg animate-fade">
           <h3 className="font-bold text-lg mb-4">{editingId ? 'Edit Question' : 'New Question'}</h3>
           <select value={form.module} onChange={e => setForm({ ...form, module: e.target.value })} className={inputCls}>
             {MODULES.map(m => <option key={m}>{m}</option>)}
@@ -114,30 +115,30 @@ export default function QuestionBank() {
           </select>
           <textarea placeholder="Explanation (optional)" value={form.explanation} onChange={e => setForm({ ...form, explanation: e.target.value })} className={`${inputCls} min-h-16`} />
           <div className="flex gap-3 mt-2">
-            <button onClick={saveQuestion} className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-700">Save Question</button>
-            <button onClick={() => { setShowForm(false); setEditingId(null) }} className="bg-slate-200 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-slate-300">Cancel</button>
+            <button onClick={saveQuestion} className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:opacity-90 shadow-md">Save Question</button>
+            <button onClick={() => { setShowForm(false); setEditingId(null) }} className="bg-slate-200 px-5 py-2.5 rounded-full font-bold text-sm hover:bg-slate-300">Cancel</button>
           </div>
         </div>
       )}
 
       {filtered.length === 0 ? (
-        <div className="bg-white border border-dashed border-slate-300 rounded-xl p-10 text-center text-slate-500">
+        <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center text-slate-500">
           No questions match. Add your first question above.
         </div>
       ) : filtered.map((q, i) => (
-        <div key={q.id} className="border border-slate-200 rounded-xl p-4 mb-3 bg-white flex justify-between items-start shadow-sm">
+        <div key={q.id} className="border border-slate-200 rounded-2xl p-4 mb-3 bg-white flex justify-between items-start shadow-sm hover:shadow-md transition-shadow animate-fade">
           <div className="flex-1">
-            <div className="flex gap-2 mb-2">
-              <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full">{q.module}</span>
-              <span className="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">Correct: {q.correct_answer}</span>
-              <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full capitalize">{q.difficulty}</span>
+            <div className="flex gap-2 mb-2 flex-wrap">
+              <span className={`${moduleColor(q.module)} text-xs font-bold px-3 py-1 rounded-full shadow-sm`}>{q.module}</span>
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Correct: {q.correct_answer}</span>
+              <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full capitalize">{q.difficulty}</span>
             </div>
             <p className="font-medium text-slate-900">{i + 1}. {q.question_text}</p>
             <p className="text-slate-500 text-sm mt-1">A: {q.choice_a} &nbsp; B: {q.choice_b} &nbsp; C: {q.choice_c} &nbsp; D: {q.choice_d}</p>
           </div>
           <div className="flex gap-2 shrink-0 ml-4">
-            <button onClick={() => startEdit(q)} className="border border-slate-300 rounded-lg px-3 py-1.5 hover:bg-slate-50 text-sm">✏️</button>
-            <button onClick={() => deleteQuestion(q.id)} className="border border-slate-300 rounded-lg px-3 py-1.5 hover:bg-slate-50 text-sm">🗑️</button>
+            <button onClick={() => startEdit(q)} className="border border-slate-300 rounded-xl px-3 py-1.5 hover:bg-slate-50 text-sm">✏️</button>
+            <button onClick={() => deleteQuestion(q.id)} className="border border-slate-300 rounded-xl px-3 py-1.5 hover:bg-slate-50 text-sm">🗑️</button>
           </div>
         </div>
       ))}
@@ -145,4 +146,4 @@ export default function QuestionBank() {
   )
 }
 
-const inputCls = "w-full border border-slate-300 rounded-lg px-3 py-2.5 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+const inputCls = "w-full border border-slate-300 rounded-xl px-3 py-2.5 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
