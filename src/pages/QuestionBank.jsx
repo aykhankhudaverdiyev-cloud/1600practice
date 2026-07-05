@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { moduleColor } from '../lib/colors'
+import { showToast } from '../lib/toast'
 
 const MODULES = ['RW Module 1', 'RW Module 2', 'Math Module 1', 'Math Module 2']
 
@@ -10,6 +11,7 @@ export default function QuestionBank() {
   const [moduleFilter, setModuleFilter] = useState('All')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(emptyForm())
 
   function emptyForm() {
@@ -24,19 +26,28 @@ export default function QuestionBank() {
 
   async function fetchQuestions() {
     const { data, error } = await supabase.from('questions').select('*').order('created_at', { ascending: false })
-    if (!error) setQuestions(data)
+    if (error) { showToast('Failed to load questions: ' + error.message, 'error'); return }
+    setQuestions(data)
   }
 
   async function saveQuestion() {
     if (!form.question_text || !form.choice_a || !form.choice_b) {
-      alert('Please fill in at least the question text and choices A/B.')
+      showToast('Please fill in the question text and choices A/B.', 'error')
       return
     }
+    setSaving(true)
+    let result
     if (editingId) {
-      await supabase.from('questions').update(form).eq('id', editingId)
+      result = await supabase.from('questions').update(form).eq('id', editingId).select()
     } else {
-      await supabase.from('questions').insert([form])
+      result = await supabase.from('questions').insert([form]).select()
     }
+    setSaving(false)
+    if (result.error) {
+      showToast('Save failed: ' + result.error.message, 'error')
+      return
+    }
+    showToast(editingId ? 'Question updated successfully' : 'Question added successfully')
     setForm(emptyForm())
     setShowForm(false)
     setEditingId(null)
@@ -44,10 +55,11 @@ export default function QuestionBank() {
   }
 
   async function deleteQuestion(id) {
-    if (confirm('Delete this question permanently?')) {
-      await supabase.from('questions').delete().eq('id', id)
-      fetchQuestions()
-    }
+    if (!confirm('Delete this question permanently?')) return
+    const { error } = await supabase.from('questions').delete().eq('id', id)
+    if (error) { showToast('Delete failed: ' + error.message, 'error'); return }
+    showToast('Question deleted')
+    fetchQuestions()
   }
 
   function startEdit(q) {
@@ -115,7 +127,9 @@ export default function QuestionBank() {
           </select>
           <textarea placeholder="Explanation (optional)" value={form.explanation} onChange={e => setForm({ ...form, explanation: e.target.value })} className={`${inputCls} min-h-16`} />
           <div className="flex gap-3 mt-2">
-            <button onClick={saveQuestion} className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:opacity-90 shadow-md">Save Question</button>
+            <button onClick={saveQuestion} disabled={saving} className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:opacity-90 shadow-md disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Question'}
+            </button>
             <button onClick={() => { setShowForm(false); setEditingId(null) }} className="bg-slate-200 px-5 py-2.5 rounded-full font-bold text-sm hover:bg-slate-300">Cancel</button>
           </div>
         </div>

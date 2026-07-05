@@ -5,6 +5,7 @@ import TestBuilder from './pages/TestBuilder'
 import Practice from './pages/Practice'
 import SavedQuestions from './pages/SavedQuestions'
 import StudyPlan from './pages/StudyPlan'
+import ToastHost from './components/ToastHost'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/saved" element={<SavedQuestions />} />
           <Route path="/plan" element={<StudyPlan />} />
         </Routes>
+        <ToastHost />
       </div>
     </BrowserRouter>
   )
@@ -42,9 +44,7 @@ function NavItem({ to, children, icon }) {
       end
       className={({ isActive }) =>
         `flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all ${
-          isActive
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+          isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
         }`
       }
     >
