@@ -13,11 +13,14 @@ export default function Practice() {
   const [answers, setAnswers] = useState({})
   const [frResponses, setFrResponses] = useState({})
   const [marked, setMarked] = useState({})
+  const [eliminateMode, setEliminateMode] = useState(false)
   const [eliminated, setEliminated] = useState({})
   const [seconds, setSeconds] = useState(0)
+  const [timerHidden, setTimerHidden] = useState(false)
   const [splitPct, setSplitPct] = useState(50)
   const [showCalc, setShowCalc] = useState(false)
   const [showNav, setShowNav] = useState(false)
+  const [showDirections, setShowDirections] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [module, setModule] = useState('Section 1: Reading and Writing')
   const containerRef = useRef(null)
@@ -49,9 +52,10 @@ export default function Practice() {
     return `${m}:${sec}`
   }
 
-  function selectAnswer(choice) { setAnswers(prev => ({ ...prev, [current]: choice })) }
+  function selectAnswer(choice) { if (!eliminateMode) setAnswers(prev => ({ ...prev, [current]: choice })) }
   function setFR(val) { setFrResponses(prev => ({ ...prev, [current]: val })) }
   function toggleMark() { setMarked(prev => ({ ...prev, [current]: !prev[current] })) }
+
   function toggleEliminate(choice) {
     setEliminated(prev => {
       const curr = prev[current] || []
@@ -83,6 +87,14 @@ export default function Practice() {
     span.className = 'highlight-mark'
     try { range.surroundContents(span) } catch (e) {}
     sel.removeAllRanges()
+  }
+
+  function clearHighlights() {
+    document.querySelectorAll('.highlight-mark').forEach(el => {
+      const parent = el.parentNode
+      while (el.firstChild) parent.insertBefore(el.firstChild, el)
+      parent.removeChild(el)
+    })
   }
 
   async function exitTest() {
@@ -138,6 +150,7 @@ export default function Practice() {
 
   const q = questions[current]
   const isFR = q.question_type === 'free_response'
+  const isMath = q.module?.startsWith('Math')
   const currentElim = eliminated[current] || []
   const choices = isFR ? [] : [
     { key: 'A', text: q.choice_a }, { key: 'B', text: q.choice_b },
@@ -145,60 +158,83 @@ export default function Practice() {
   ]
 
   return (
-    <div className="fixed inset-0 bg-white flex flex-col z-30">
+    <div className="fixed inset-0 bg-white flex flex-col z-30 font-sans">
       <style>{`.highlight-mark { padding: 1px 2px; }`}</style>
 
-      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-[#dde6f5]">
-        <div>
-          <p className="font-bold text-slate-900 text-lg">{module}</p>
-          <button className="text-sm text-slate-600 hover:underline">Directions ⌄</button>
-        </div>
-        <div className="text-center">
-          <p className="font-mono font-bold text-xl text-slate-900">{formatTime(seconds)}</p>
-          <button onClick={() => {}} className="bg-white border border-slate-300 rounded-full px-4 py-0.5 text-xs font-semibold mt-1">Hide</button>
-        </div>
-        <div className="flex items-center gap-5">
-          <button onClick={() => setShowCalc(v => !v)} className="flex flex-col items-center text-xs font-semibold text-slate-700 hover:text-blue-600">
-            <span className="text-lg">🖩</span>Calculator
+      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-300 bg-[#dbe6f6] relative">
+        <div className="relative">
+          <p className="font-bold text-slate-900 text-base">{module}</p>
+          <button onClick={() => setShowDirections(v => !v)} className="text-sm text-slate-600 hover:underline flex items-center gap-1">
+            Directions <span className={`transition-transform ${showDirections ? 'rotate-180' : ''}`}>⌄</span>
           </button>
-          <button onClick={exitTest} className="flex flex-col items-center text-xs font-semibold text-red-600 hover:text-red-700">
+          {showDirections && (
+            <div className="absolute top-full left-0 mt-2 bg-white border border-slate-300 rounded-xl shadow-xl p-4 w-80 z-50 text-sm text-slate-700">
+              {isFR
+                ? 'Enter your answer in the box provided. If your answer is a fraction, enter it as an improper fraction or its decimal equivalent.'
+                : 'Choose the best answer for each question based on the passage or information provided.'}
+            </div>
+          )}
+        </div>
+
+        <div className="text-center">
+          {!timerHidden && <p className="font-mono font-bold text-xl text-slate-900">{formatTime(seconds)}</p>}
+          <button onClick={() => setTimerHidden(v => !v)} className="bg-white border border-slate-400 rounded-full px-4 py-0.5 text-xs font-semibold mt-1 hover:bg-slate-50">
+            {timerHidden ? 'Show' : 'Hide'}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-6">
+          {isMath && (
+            <button onClick={() => setShowCalc(v => !v)} className={`flex flex-col items-center text-xs font-semibold ${showCalc ? 'text-blue-600' : 'text-slate-700 hover:text-blue-600'}`}>
+              <span className="text-lg">🖩</span>Calculator
+            </button>
+          )}
+          <button onClick={exitTest} className="flex flex-col items-center text-xs font-semibold text-slate-700 hover:text-red-600">
             <span className="text-lg">⏻</span>Exit
           </button>
         </div>
       </div>
 
-      <div className="bg-[#1a2b6b] text-white text-center text-xs font-bold py-1.5 tracking-wide">THIS IS A TEST PREVIEW</div>
+      <div className="bg-[#1a2b6b] text-white text-center text-[11px] font-bold py-1.5 tracking-wide">THIS IS A TEST PREVIEW</div>
 
       <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
         {q.passage_text ? (
           <>
-            <div style={{ width: `${splitPct}%` }} className="overflow-y-auto p-8">
-              <div className="flex items-center gap-4 mb-4">
-                <span className="text-xs font-bold text-slate-500 uppercase">Highlights & Notes</span>
-                <div className="flex gap-1.5">
-                  <button onClick={() => applyHighlight('#fef08a')} className="w-5 h-5 rounded-full bg-yellow-300 border border-white shadow hover:scale-110 transition-transform" />
+            <div style={{ width: `${splitPct}%` }} className="overflow-y-auto p-8 border-r border-slate-200">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Highlights & Notes</span>
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-2 py-1 shadow-sm">
+                  <button onClick={() => applyHighlight('#fde68a')} className="w-5 h-5 rounded-full bg-yellow-300 border border-white shadow hover:scale-110 transition-transform" />
                   <button onClick={() => applyHighlight('#bfdbfe')} className="w-5 h-5 rounded-full bg-blue-300 border border-white shadow hover:scale-110 transition-transform" />
-                  <button onClick={() => applyHighlight('#fbcfe8')} className="w-5 h-5 rounded-full bg-pink-300 border border-white shadow hover:scale-110 transition-transform" />
+                  <button onClick={() => applyHighlight('#f9a8d4')} className="w-5 h-5 rounded-full bg-pink-300 border border-white shadow hover:scale-110 transition-transform" />
+                  <span className="w-px h-4 bg-slate-200 mx-0.5" />
+                  <button onClick={clearHighlights} title="Clear all highlights" className="text-slate-400 hover:text-red-500 text-sm px-1">🗑️</button>
                 </div>
               </div>
               <p className="text-slate-900 leading-relaxed whitespace-pre-line select-text text-[16px]">{q.passage_text}</p>
             </div>
-            <div
-              onMouseDown={startSplitDrag}
-              className="w-1.5 bg-slate-200 hover:bg-blue-400 cursor-col-resize flex items-center justify-center relative z-10"
-            >
-              <div className="w-4 h-8 bg-slate-800 rounded-full flex items-center justify-center text-white text-[10px]">⋮</div>
+            <div onMouseDown={startSplitDrag} className="w-1.5 bg-slate-200 hover:bg-blue-400 cursor-col-resize flex items-center justify-center relative z-10 group">
+              <div className="w-4 h-8 bg-slate-700 group-hover:bg-blue-600 rounded-full flex items-center justify-center text-white text-[10px]">⋮</div>
             </div>
           </>
         ) : null}
 
         <div style={{ width: q.passage_text ? `${100 - splitPct}%` : '100%' }} className="overflow-y-auto p-8 bg-white">
-          <div className="flex items-center gap-3 mb-5 border-b border-slate-200 pb-2">
+          <div className="flex items-center gap-3 mb-5 border-b border-slate-300 pb-2">
             <span className="w-8 h-8 flex items-center justify-center bg-slate-900 text-white font-bold rounded text-sm">{current + 1}</span>
-            <button onClick={toggleMark} className={`flex items-center gap-1.5 text-sm font-semibold ${marked[current] ? 'text-amber-600' : 'text-slate-600 hover:text-slate-900'}`}>
-              {marked[current] ? '🔖' : '🏷️'} Mark for Review
+            <button onClick={toggleMark} className={`flex items-center gap-1.5 text-sm font-semibold ${marked[current] ? 'text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}>
+              <span>{marked[current] ? '🔖' : '🏳️'}</span> Mark for Review
             </button>
-            <span className="ml-auto text-xs font-bold border border-slate-300 rounded px-2 py-0.5">ABC ✕</span>
+            {!isFR && (
+              <button
+                onClick={() => setEliminateMode(v => !v)}
+                className={`ml-auto text-xs font-bold border rounded px-2 py-1 transition-colors ${
+                  eliminateMode ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-400 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <span className={eliminateMode ? 'line-through' : ''}>ABC</span> {eliminateMode ? '✓' : '✕'}
+              </button>
+            )}
           </div>
 
           <p className="text-slate-900 font-medium mb-6 text-[16px] leading-relaxed">{q.question_text}</p>
@@ -209,9 +245,9 @@ export default function Practice() {
                 value={frResponses[current] || ''}
                 onChange={e => setFR(e.target.value)}
                 placeholder="Enter answer"
-                className="w-40 border-2 border-slate-400 rounded-lg px-3 py-2 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-40 border-2 border-slate-500 rounded-lg px-3 py-2 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-sm text-slate-500 mt-3">Answer Preview: <span className="font-bold">{frResponses[current] || '—'}</span></p>
+              <p className="text-sm text-slate-600 mt-4 font-semibold">Answer Preview: <span className="font-mono">{frResponses[current] || ''}</span></p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -219,23 +255,26 @@ export default function Practice() {
                 const isElim = currentElim.includes(c.key)
                 const isSelected = answers[current] === c.key
                 return (
-                  <div key={c.key} className="flex items-center gap-2">
+                  <div key={c.key} className="flex items-center gap-3">
                     <button
-                      onClick={() => !isElim && selectAnswer(c.key)}
-                      disabled={isElim}
-                      className={`flex-1 text-left flex items-center gap-3 border rounded-full px-4 py-3 transition-all ${
-                        isElim ? 'opacity-40 line-through border-slate-200' :
-                        isSelected ? 'border-blue-600 bg-blue-50' : 'border-slate-300 hover:border-slate-400'
+                      onClick={() => eliminateMode ? toggleEliminate(c.key) : selectAnswer(c.key)}
+                      className={`flex-1 text-left flex items-center gap-3 border rounded-full px-4 py-3 transition-all relative ${
+                        isElim ? 'border-slate-200' :
+                        isSelected ? 'border-blue-600 bg-blue-50' : 'border-slate-300 hover:border-slate-500'
                       }`}
                     >
-                      <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold border-2 ${
-                        isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-400 text-slate-600'
+                      <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold border-2 shrink-0 ${
+                        isSelected && !isElim ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-400 text-slate-600'
                       }`}>{c.key}</span>
-                      <span className="text-sm text-slate-800">{c.text}</span>
+                      <span className={`text-sm text-slate-800 ${isElim ? 'line-through text-slate-400' : ''}`}>{c.text}</span>
                     </button>
-                    <button onClick={() => toggleEliminate(c.key)} className="text-xs border border-slate-300 rounded-full w-8 h-8 flex items-center justify-center text-slate-400 hover:border-red-300 hover:text-red-500">
-                      {c.key}
-                    </button>
+                    {eliminateMode && (
+                      <button onClick={() => toggleEliminate(c.key)} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
+                        isElim ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 text-slate-500 hover:border-slate-500'
+                      }`}>
+                        {isElim ? '↺' : c.key}
+                      </button>
+                    )}
                   </div>
                 )
               })}
@@ -244,17 +283,17 @@ export default function Practice() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200 bg-[#dde6f5]">
+      <div className="flex items-center justify-between px-6 py-3 border-t border-slate-300 bg-[#dbe6f6]">
         <span className="font-semibold text-slate-800 text-sm">You</span>
-        <button onClick={() => setShowNav(true)} className="bg-slate-900 text-white rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2">
-          Question {current + 1} of {questions.length} ⌃
+        <button onClick={() => setShowNav(true)} className="bg-slate-900 text-white rounded-full px-5 py-2 text-sm font-bold flex items-center gap-2 hover:bg-slate-800">
+          Question {current + 1} of {questions.length} <span className="text-xs">⌃</span>
         </button>
         <div className="flex gap-3">
-          <button onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0} className="bg-white border border-slate-300 rounded-full px-5 py-2 text-sm font-bold disabled:opacity-40">Back</button>
+          <button onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0} className="bg-white border border-slate-400 rounded-full px-6 py-2 text-sm font-bold disabled:opacity-40 hover:bg-slate-50">Back</button>
           {current < questions.length - 1 ? (
-            <button onClick={() => setCurrent(c => c + 1)} className="bg-blue-600 text-white rounded-full px-6 py-2 text-sm font-bold hover:bg-blue-700">Next</button>
+            <button onClick={() => setCurrent(c => c + 1)} className="bg-blue-700 text-white rounded-full px-7 py-2 text-sm font-bold hover:bg-blue-800">Next</button>
           ) : (
-            <button onClick={finishTest} disabled={submitting} className="bg-green-600 text-white rounded-full px-6 py-2 text-sm font-bold hover:bg-green-700 disabled:opacity-50">
+            <button onClick={finishTest} disabled={submitting} className="bg-green-600 text-white rounded-full px-7 py-2 text-sm font-bold hover:bg-green-700 disabled:opacity-50">
               {submitting ? 'Submitting...' : 'Finish'}
             </button>
           )}
