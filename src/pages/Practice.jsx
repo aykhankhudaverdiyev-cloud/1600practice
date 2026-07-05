@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { showToast } from '../lib/toast'
 import ScientificCalculator from '../components/ScientificCalculator'
 import QuestionNav from '../components/QuestionNav'
+import HighlightToolbar from '../components/HighlightToolbar'
 
 export default function Practice() {
   const { testId } = useParams()
@@ -24,6 +25,7 @@ export default function Practice() {
   const [submitting, setSubmitting] = useState(false)
   const [module, setModule] = useState('Section 1: Reading and Writing')
   const containerRef = useRef(null)
+  const passageRef = useRef(null)
   const draggingSplit = useRef(false)
 
   useEffect(() => { loadTest() }, [testId])
@@ -75,26 +77,6 @@ export default function Practice() {
     function up() { draggingSplit.current = false; document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
     document.addEventListener('mousemove', move)
     document.addEventListener('mouseup', up)
-  }
-
-  function applyHighlight(color) {
-    const sel = window.getSelection()
-    if (!sel || sel.isCollapsed) return
-    const range = sel.getRangeAt(0)
-    const span = document.createElement('span')
-    span.style.backgroundColor = color
-    span.style.borderRadius = '2px'
-    span.className = 'highlight-mark'
-    try { range.surroundContents(span) } catch (e) {}
-    sel.removeAllRanges()
-  }
-
-  function clearHighlights() {
-    document.querySelectorAll('.highlight-mark').forEach(el => {
-      const parent = el.parentNode
-      while (el.firstChild) parent.insertBefore(el.firstChild, el)
-      parent.removeChild(el)
-    })
   }
 
   async function exitTest() {
@@ -158,7 +140,7 @@ export default function Practice() {
   ]
 
   return (
-    <div className="fixed inset-0 bg-white flex flex-col z-30 font-sans">
+    <div ref={containerRef} className="fixed inset-0 bg-white flex flex-col z-30 font-sans">
       <style>{`.highlight-mark { padding: 1px 2px; }`}</style>
 
       <div className="flex items-center justify-between px-6 py-3 border-b border-slate-300 bg-[#dbe6f6] relative">
@@ -171,7 +153,7 @@ export default function Practice() {
             <div className="absolute top-full left-0 mt-2 bg-white border border-slate-300 rounded-xl shadow-xl p-4 w-80 z-50 text-sm text-slate-700">
               {isFR
                 ? 'Enter your answer in the box provided. If your answer is a fraction, enter it as an improper fraction or its decimal equivalent.'
-                : 'Choose the best answer for each question based on the passage or information provided.'}
+                : 'Choose the best answer for each question based on the passage or information provided. Select text in the passage to highlight it.'}
             </div>
           )}
         </div>
@@ -197,20 +179,11 @@ export default function Practice() {
 
       <div className="bg-[#1a2b6b] text-white text-center text-[11px] font-bold py-1.5 tracking-wide">THIS IS A TEST PREVIEW</div>
 
-      <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 overflow-hidden relative">
         {q.passage_text ? (
           <>
-            <div style={{ width: `${splitPct}%` }} className="overflow-y-auto p-8 border-r border-slate-200">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Highlights & Notes</span>
-                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-2 py-1 shadow-sm">
-                  <button onClick={() => applyHighlight('#fde68a')} className="w-5 h-5 rounded-full bg-yellow-300 border border-white shadow hover:scale-110 transition-transform" />
-                  <button onClick={() => applyHighlight('#bfdbfe')} className="w-5 h-5 rounded-full bg-blue-300 border border-white shadow hover:scale-110 transition-transform" />
-                  <button onClick={() => applyHighlight('#f9a8d4')} className="w-5 h-5 rounded-full bg-pink-300 border border-white shadow hover:scale-110 transition-transform" />
-                  <span className="w-px h-4 bg-slate-200 mx-0.5" />
-                  <button onClick={clearHighlights} title="Clear all highlights" className="text-slate-400 hover:text-red-500 text-sm px-1">🗑️</button>
-                </div>
-              </div>
+            <div style={{ width: `${splitPct}%` }} className="overflow-y-auto p-8 border-r border-slate-200" ref={passageRef}>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-4">Select text below to highlight</p>
               <p className="text-slate-900 leading-relaxed whitespace-pre-line select-text text-[16px]">{q.passage_text}</p>
             </div>
             <div onMouseDown={startSplitDrag} className="w-1.5 bg-slate-200 hover:bg-blue-400 cursor-col-resize flex items-center justify-center relative z-10 group">
@@ -300,6 +273,7 @@ export default function Practice() {
         </div>
       </div>
 
+      {q.passage_text && <HighlightToolbar containerRef={passageRef} />}
       {showCalc && <ScientificCalculator onClose={() => setShowCalc(false)} />}
       {showNav && (
         <QuestionNav
