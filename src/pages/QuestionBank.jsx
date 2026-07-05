@@ -16,9 +16,9 @@ export default function QuestionBank() {
 
   function emptyForm() {
     return {
-      module: MODULES[0], passage_text: '', question_text: '',
+      question_type: 'multiple_choice', module: MODULES[0], passage_text: '', question_text: '',
       choice_a: '', choice_b: '', choice_c: '', choice_d: '',
-      correct_answer: 'A', difficulty: 'medium', explanation: ''
+      correct_answer: 'A', correct_value: '', difficulty: 'medium', explanation: ''
     }
   }
 
@@ -31,8 +31,16 @@ export default function QuestionBank() {
   }
 
   async function saveQuestion() {
-    if (!form.question_text || !form.choice_a || !form.choice_b) {
-      showToast('Please fill in the question text and choices A/B.', 'error')
+    if (!form.question_text) {
+      showToast('Please fill in the question text.', 'error')
+      return
+    }
+    if (form.question_type === 'multiple_choice' && (!form.choice_a || !form.choice_b)) {
+      showToast('Please fill in choices A and B.', 'error')
+      return
+    }
+    if (form.question_type === 'free_response' && !form.correct_value) {
+      showToast('Please provide the correct numeric answer.', 'error')
       return
     }
     setSaving(true)
@@ -63,7 +71,7 @@ export default function QuestionBank() {
   }
 
   function startEdit(q) {
-    setForm(q)
+    setForm({ ...emptyForm(), ...q })
     setEditingId(q.id)
     setShowForm(true)
   }
@@ -109,23 +117,37 @@ export default function QuestionBank() {
       {showForm && (
         <div className="border border-slate-200 rounded-2xl p-6 mb-6 bg-white shadow-lg animate-fade">
           <h3 className="font-bold text-lg mb-4">{editingId ? 'Edit Question' : 'New Question'}</h3>
+
+          <select value={form.question_type} onChange={e => setForm({ ...form, question_type: e.target.value })} className={inputCls}>
+            <option value="multiple_choice">Multiple Choice</option>
+            <option value="free_response">Free Response (Student-Produced)</option>
+          </select>
           <select value={form.module} onChange={e => setForm({ ...form, module: e.target.value })} className={inputCls}>
             {MODULES.map(m => <option key={m}>{m}</option>)}
           </select>
           <textarea placeholder="Passage (optional)" value={form.passage_text} onChange={e => setForm({ ...form, passage_text: e.target.value })} className={`${inputCls} min-h-24`} />
           <textarea placeholder="Question text" value={form.question_text} onChange={e => setForm({ ...form, question_text: e.target.value })} className={`${inputCls} min-h-16`} />
-          <input placeholder="Choice A" value={form.choice_a} onChange={e => setForm({ ...form, choice_a: e.target.value })} className={inputCls} />
-          <input placeholder="Choice B" value={form.choice_b} onChange={e => setForm({ ...form, choice_b: e.target.value })} className={inputCls} />
-          <input placeholder="Choice C" value={form.choice_c} onChange={e => setForm({ ...form, choice_c: e.target.value })} className={inputCls} />
-          <input placeholder="Choice D" value={form.choice_d} onChange={e => setForm({ ...form, choice_d: e.target.value })} className={inputCls} />
-          <select value={form.correct_answer} onChange={e => setForm({ ...form, correct_answer: e.target.value })} className={inputCls}>
-            <option value="A">Correct: A</option><option value="B">Correct: B</option>
-            <option value="C">Correct: C</option><option value="D">Correct: D</option>
-          </select>
+
+          {form.question_type === 'multiple_choice' ? (
+            <>
+              <input placeholder="Choice A" value={form.choice_a || ''} onChange={e => setForm({ ...form, choice_a: e.target.value })} className={inputCls} />
+              <input placeholder="Choice B" value={form.choice_b || ''} onChange={e => setForm({ ...form, choice_b: e.target.value })} className={inputCls} />
+              <input placeholder="Choice C" value={form.choice_c || ''} onChange={e => setForm({ ...form, choice_c: e.target.value })} className={inputCls} />
+              <input placeholder="Choice D" value={form.choice_d || ''} onChange={e => setForm({ ...form, choice_d: e.target.value })} className={inputCls} />
+              <select value={form.correct_answer} onChange={e => setForm({ ...form, correct_answer: e.target.value })} className={inputCls}>
+                <option value="A">Correct: A</option><option value="B">Correct: B</option>
+                <option value="C">Correct: C</option><option value="D">Correct: D</option>
+              </select>
+            </>
+          ) : (
+            <input placeholder="Correct numeric answer (e.g. 4.32)" value={form.correct_value || ''} onChange={e => setForm({ ...form, correct_value: e.target.value })} className={inputCls} />
+          )}
+
           <select value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })} className={inputCls}>
             <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
           </select>
           <textarea placeholder="Explanation (optional)" value={form.explanation} onChange={e => setForm({ ...form, explanation: e.target.value })} className={`${inputCls} min-h-16`} />
+
           <div className="flex gap-3 mt-2">
             <button onClick={saveQuestion} disabled={saving} className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:opacity-90 shadow-md disabled:opacity-50">
               {saving ? 'Saving...' : 'Save Question'}
@@ -144,11 +166,17 @@ export default function QuestionBank() {
           <div className="flex-1">
             <div className="flex gap-2 mb-2 flex-wrap">
               <span className={`${moduleColor(q.module)} text-xs font-bold px-3 py-1 rounded-full shadow-sm`}>{q.module}</span>
-              <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Correct: {q.correct_answer}</span>
+              {q.question_type === 'free_response' ? (
+                <span className="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full">Free Response: {q.correct_value}</span>
+              ) : (
+                <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Correct: {q.correct_answer}</span>
+              )}
               <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full capitalize">{q.difficulty}</span>
             </div>
             <p className="font-medium text-slate-900">{i + 1}. {q.question_text}</p>
-            <p className="text-slate-500 text-sm mt-1">A: {q.choice_a} &nbsp; B: {q.choice_b} &nbsp; C: {q.choice_c} &nbsp; D: {q.choice_d}</p>
+            {q.question_type !== 'free_response' && (
+              <p className="text-slate-500 text-sm mt-1">A: {q.choice_a} &nbsp; B: {q.choice_b} &nbsp; C: {q.choice_c} &nbsp; D: {q.choice_d}</p>
+            )}
           </div>
           <div className="flex gap-2 shrink-0 ml-4">
             <button onClick={() => startEdit(q)} className="border border-slate-300 rounded-xl px-3 py-1.5 hover:bg-slate-50 text-sm">✏️</button>
