@@ -34,7 +34,6 @@ export interface QuestionFormData {
   passage_text: string;
   passage_image_url: string;
   passage_image_alt: string;
-  passage_image_caption: string;
   options: { key: string; text: string }[];
   correct_answer: string;
   correct_value: string;
@@ -51,7 +50,6 @@ function emptyForm(): QuestionFormData {
     passage_text: '',
     passage_image_url: '',
     passage_image_alt: '',
-    passage_image_caption: '',
     options: OPTION_KEYS.map(key => ({ key, text: '' })),
     correct_answer: 'A',
     correct_value: '',
@@ -74,7 +72,6 @@ function fromQuestion(q: Question): QuestionFormData {
     passage_text: q.passage_text || '',
     passage_image_url: q.passage_image_url || '',
     passage_image_alt: q.passage_image_alt || '',
-    passage_image_caption: q.passage_image_caption || '',
     options: opts,
     correct_answer: q.correct_answer,
     correct_value: q.correct_value || '',
@@ -188,7 +185,6 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
       passage_text: form.passage_text.trim(),
       passage_image_url: form.passage_image_url.trim(),
       passage_image_alt: form.passage_image_alt.trim(),
-      passage_image_caption: form.passage_image_caption.trim(),
       options: form.options.filter(o => o.text.trim()),
     };
 
@@ -197,7 +193,8 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
 
   const canProceed = (s: number): boolean => {
     if (s === 0) return !!form.question_text.trim();
-    if (s === 1) return form.is_free_response ? !!form.correct_value.trim() : form.options.filter(o => o.text.trim()).length >= 2;
+    if (s === 1)
+      return form.is_free_response ? !!form.correct_value.trim() : form.options.filter(o => o.text.trim()).length >= 2;
     return true;
   };
 
@@ -228,6 +225,7 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
               boxShadow: '0 40px 100px rgba(0,0,0,0.5), 0 0 60px rgba(99, 102, 241, 0.08)',
             }}
           >
+            {/* Header */}
             <div className="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-xl font-black text-white">
@@ -245,6 +243,7 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
               </button>
             </div>
 
+            {/* Step indicator */}
             <div className="px-6 pb-4 shrink-0">
               <div className="flex items-center gap-2">
                 {stepLabels.map((label, i) => (
@@ -280,8 +279,10 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
               </div>
             </div>
 
+            {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 pb-4" style={{ scrollbarWidth: 'thin' }}>
               <AnimatePresence mode="wait">
+                {/* Step 0: Details */}
                 {step === 0 && (
                   <motion.div
                     key="step0"
@@ -293,7 +294,9 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                   >
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">Module</label>
+                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">
+                          Module
+                        </label>
                         <select
                           value={form.module}
                           onChange={e => updateField('module', e.target.value)}
@@ -308,10 +311,17 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">Difficulty</label>
+                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">
+                          Difficulty
+                        </label>
                         <select
                           value={form.difficulty}
-                          onChange={e => updateField('difficulty', e.target.value as Question['difficulty'])}
+                          onChange={e =>
+                            updateField(
+                              'difficulty',
+                              e.target.value as Question['difficulty']
+                            )
+                          }
                           className="w-full text-sm"
                         >
                           {DIFFICULTIES.map(d => (
@@ -323,7 +333,9 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">Skill</label>
+                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">
+                          Skill
+                        </label>
                         <select
                           value={form.skill}
                           onChange={e => updateField('skill', e.target.value)}
@@ -342,15 +354,27 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                       <div
                         className="flex items-center gap-3 p-3 rounded-xl"
                         style={{
-                          background: form.is_free_response ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
-                          border: `1px solid ${form.is_free_response ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'}`,
+                          background: form.is_free_response
+                            ? 'rgba(99,102,241,0.08)'
+                            : 'rgba(255,255,255,0.02)',
+                          border: `1px solid ${
+                            form.is_free_response
+                              ? 'rgba(99,102,241,0.2)'
+                              : 'rgba(255,255,255,0.05)'
+                          }`,
                         }}
                       >
                         <button
                           type="button"
-                          onClick={() => updateField('is_free_response', !form.is_free_response)}
+                          onClick={() =>
+                            updateField('is_free_response', !form.is_free_response)
+                          }
                           className="w-10 h-6 rounded-full relative transition-all shrink-0"
-                          style={{ background: form.is_free_response ? '#818cf8' : 'rgba(255,255,255,0.1)' }}
+                          style={{
+                            background: form.is_free_response
+                              ? '#818cf8'
+                              : 'rgba(255,255,255,0.1)',
+                          }}
                         >
                           <span
                             className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all"
@@ -358,40 +382,79 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                           />
                         </button>
                         <div>
-                          <p className="text-sm font-semibold text-white/70">Free Response (Student-Produced Response)</p>
-                          <p className="text-[10px] text-white/30">Student types their answer instead of choosing A–D</p>
+                          <p className="text-sm font-semibold text-white/70">
+                            Free Response (Student-Produced Response)
+                          </p>
+                          <p className="text-[10px] text-white/30">
+                            Student types their answer instead of choosing A–D
+                          </p>
                         </div>
                       </div>
                     )}
 
+                    {/* Passage */}
                     <div>
                       <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">
-                        Passage / Context <span className="text-white/15 normal-case font-medium">(optional)</span>
+                        Passage / Context{' '}
+                        <span className="text-white/15 normal-case font-medium">
+                          (optional)
+                        </span>
                       </label>
 
                       <div className="flex items-center gap-1 mb-1.5 flex-wrap">
                         {[
-                          { label: 'B', title: 'Bold (**text**)', prefix: '**', suffix: '**', style: { fontWeight: 800 } as React.CSSProperties },
-                          { label: 'I', title: 'Italic (_text_)', prefix: '_', suffix: '_', style: { fontStyle: 'italic' } as React.CSSProperties },
-                          { label: 'U', title: 'Underline (__text__)', prefix: '__', suffix: '__', style: { textDecoration: 'underline' } as React.CSSProperties },
+                          {
+                            label: 'B',
+                            title: 'Bold (**text**)',
+                            prefix: '**',
+                            suffix: '**',
+                            style: { fontWeight: 800 } as React.CSSProperties,
+                          },
+                          {
+                            label: 'I',
+                            title: 'Italic (_text_)',
+                            prefix: '_',
+                            suffix: '_',
+                            style: { fontStyle: 'italic' } as React.CSSProperties,
+                          },
+                          {
+                            label: 'U',
+                            title: 'Underline (__text__)',
+                            prefix: '__',
+                            suffix: '__',
+                            style: { textDecoration: 'underline' } as React.CSSProperties,
+                          },
                         ].map(btn => (
                           <button
                             key={btn.label}
                             type="button"
                             title={btn.title}
                             onClick={() => {
-                              const ta = document.getElementById('passage-textarea') as HTMLTextAreaElement | null;
+                              const ta = document.getElementById(
+                                'passage-textarea'
+                              ) as HTMLTextAreaElement | null;
                               if (ta) {
-                                insertFormatting(ta, btn.prefix, btn.suffix, form.passage_text, v => updateField('passage_text', v));
+                                insertFormatting(
+                                  ta,
+                                  btn.prefix,
+                                  btn.suffix,
+                                  form.passage_text,
+                                  v => updateField('passage_text', v)
+                                );
                               }
                             }}
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all hover:bg-white/10 text-white/40 hover:text-white/80"
-                            style={{ ...btn.style, border: '1px solid rgba(255,255,255,0.08)' }}
+                            style={{
+                              ...btn.style,
+                              border: '1px solid rgba(255,255,255,0.08)',
+                            }}
                           >
                             {btn.label}
                           </button>
                         ))}
-                        <span className="text-[9px] text-white/15 ml-2">Use __underline__, **bold**, _italic_</span>
+                        <span className="text-[9px] text-white/15 ml-2">
+                          Use __underline__, **bold**, _italic_
+                        </span>
                       </div>
 
                       <textarea
@@ -399,22 +462,34 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                         value={form.passage_text}
                         onChange={e => updateField('passage_text', e.target.value)}
                         rows={4}
-                        placeholder={'Add passage text. Use __underline__, **bold**, or _italic_ for formatting.\n\nExample: The author states that __this claim is central__ to the argument.'}
+                        placeholder={
+                          'Add passage text. Use __underline__, **bold**, or _italic_ for formatting.\n\nExample: The author states that __this claim is central__ to the argument.'
+                        }
                         className="w-full resize-y text-sm"
                         style={{ minHeight: '80px' }}
                       />
 
                       {form.passage_text.trim() &&
-                        (form.passage_text.includes('__') || form.passage_text.includes('**') || form.passage_text.includes('_')) && (
+                        (form.passage_text.includes('__') ||
+                          form.passage_text.includes('**') ||
+                          form.passage_text.includes('_')) && (
                           <div
                             className="mt-2 rounded-lg p-3"
-                            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                            style={{
+                              background: 'rgba(255,255,255,0.02)',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                            }}
                           >
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-white/20 mb-1">Preview</p>
-                            <p className="text-xs text-white/50 leading-relaxed">{renderRichText(form.passage_text)}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-white/20 mb-1">
+                              Preview
+                            </p>
+                            <p className="text-xs text-white/50 leading-relaxed">
+                              {renderRichText(form.passage_text)}
+                            </p>
                           </div>
                         )}
 
+                      {/* Passage image fields */}
                       <div className="grid grid-cols-1 gap-3 mt-3">
                         <div>
                           <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">
@@ -423,7 +498,9 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                           <input
                             type="url"
                             value={form.passage_image_url}
-                            onChange={e => updateField('passage_image_url', e.target.value)}
+                            onChange={e =>
+                              updateField('passage_image_url', e.target.value)
+                            }
                             placeholder="e.g. /images/passages/history-1.jpg or https://example.com/image.jpg"
                             className="w-full text-sm"
                           />
@@ -436,27 +513,17 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                           <input
                             type="text"
                             value={form.passage_image_alt}
-                            onChange={e => updateField('passage_image_alt', e.target.value)}
+                            onChange={e =>
+                              updateField('passage_image_alt', e.target.value)
+                            }
                             placeholder="Describe the image briefly"
-                            className="w-full text-sm"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">
-                            Image Caption
-                          </label>
-                          <input
-                            type="text"
-                            value={form.passage_image_caption}
-                            onChange={e => updateField('passage_image_caption', e.target.value)}
-                            placeholder="Optional caption under the image"
                             className="w-full text-sm"
                           />
                         </div>
                       </div>
                     </div>
 
+                    {/* Question text */}
                     <div>
                       <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">
                         Question Text <span className="text-red-400">*</span>
@@ -466,7 +533,9 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                         onChange={e => updateField('question_text', e.target.value)}
                         rows={3}
                         placeholder="e.g. Which choice best completes the text?"
-                        className={`w-full resize-y text-sm ${errors.question_text ? 'border-red-500/50' : ''}`}
+                        className={`w-full resize-y text-sm ${
+                          errors.question_text ? 'border-red-500/50' : ''
+                        }`}
                         style={{ minHeight: '64px' }}
                       />
                       {errors.question_text && (
@@ -478,6 +547,7 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                   </motion.div>
                 )}
 
+                {/* Step 1: Answers */}
                 {step === 1 && (
                   <motion.div
                     key="step1"
@@ -493,15 +563,22 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                           Correct Answer Value <span className="text-red-400">*</span>
                         </label>
                         <p className="text-[11px] text-white/20 mb-3">
-                          Enter the exact correct answer. Numbers, decimals, and fractions are accepted.
+                          Enter the exact correct answer. Numbers, decimals, and fractions
+                          are accepted.
                         </p>
                         <input
                           type="text"
                           value={form.correct_value}
-                          onChange={e => updateField('correct_value', e.target.value)}
+                          onChange={e =>
+                            updateField('correct_value', e.target.value)
+                          }
                           placeholder="e.g. 5, 3.14, 2/3, -7"
                           className={`w-full text-sm ${
-                            errors.correct_value ? 'border-red-500/50' : form.correct_value.trim() ? 'border-green-500/30 bg-green-500/5' : ''
+                            errors.correct_value
+                              ? 'border-red-500/50'
+                              : form.correct_value.trim()
+                              ? 'border-green-500/30 bg-green-500/5'
+                              : ''
                           }`}
                         />
                         {errors.correct_value && (
@@ -510,9 +587,13 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                           </p>
                         )}
                         <div className="mt-3 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
-                          <p className="text-[10px] text-indigo-300 font-bold mb-1">💡 Student-Produced Response</p>
+                          <p className="text-[10px] text-indigo-300 font-bold mb-1">
+                            💡 Student-Produced Response
+                          </p>
                           <p className="text-[11px] text-white/40">
-                            Students will type their answer in a text field. The system checks for numeric equivalence (e.g., "0.5" matches "1/2").
+                            Students will type their answer in a text field. The system
+                            checks for numeric equivalence (e.g., &quot;0.5&quot; matches
+                            &quot;1/2&quot;).
                           </p>
                         </div>
                       </div>
@@ -520,9 +601,10 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                       <div>
                         <label className="text-[11px] font-bold text-white/40 uppercase tracking-wider block mb-3">
                           Answer Options <span className="text-red-400">*</span>
-                          <span className="text-white/15 normal-case font-medium ml-2">Click the radio to set correct answer</span>
+                          <span className="text-white/15 normal-case font-medium ml-2">
+                            Click the radio to set correct answer
+                          </span>
                         </label>
-
                         {errors.options && (
                           <p className="text-[11px] text-red-400 mb-3 flex items-center gap-1">
                             <span>⚠</span> {errors.options}
@@ -538,13 +620,17 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                               <div key={opt.key} className="flex items-center gap-3">
                                 <button
                                   type="button"
-                                  onClick={() => updateField('correct_answer', opt.key)}
+                                  onClick={() =>
+                                    updateField('correct_answer', opt.key)
+                                  }
                                   className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-all border-2 ${
                                     isCorrect
                                       ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20'
                                       : 'border-white/10 text-white/25 hover:border-white/25 hover:text-white/50'
                                   }`}
-                                  title={isCorrect ? 'Correct answer' : `Set ${opt.key} as correct`}
+                                  title={
+                                    isCorrect ? 'Correct answer' : `Set ${opt.key} as correct`
+                                  }
                                 >
                                   {isCorrect ? '✓' : opt.key}
                                 </button>
@@ -552,15 +638,25 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                                 <input
                                   type="text"
                                   value={opt.text}
-                                  onChange={e => updateOption(i, e.target.value)}
-                                  placeholder={`Option ${opt.key}${i < 2 ? ' (required)' : ' (optional)'}`}
-                                  className={`flex-1 text-sm ${hasError ? 'border-red-500/50' : ''} ${
-                                    isCorrect && opt.text.trim() ? 'border-green-500/30 bg-green-500/5' : ''
+                                  onChange={e =>
+                                    updateOption(i, e.target.value)
+                                  }
+                                  placeholder={`Option ${opt.key}${
+                                    i < 2 ? ' (required)' : ' (optional)'
+                                  }`}
+                                  className={`flex-1 text-sm ${
+                                    hasError ? 'border-red-500/50' : ''
+                                  } ${
+                                    isCorrect && opt.text.trim()
+                                      ? 'border-green-500/30 bg-green-500/5'
+                                      : ''
                                   }`}
                                 />
 
                                 {isCorrect && opt.text.trim() && (
-                                  <span className="text-green-400 text-[10px] font-bold shrink-0 w-16 text-right">Correct</span>
+                                  <span className="text-green-400 text-[10px] font-bold shrink-0 w-16 text-right">
+                                    Correct
+                                  </span>
                                 )}
                               </div>
                             );
@@ -584,7 +680,9 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                         onChange={e => updateField('explanation', e.target.value)}
                         rows={3}
                         placeholder="Explain why the correct answer is right and common pitfalls..."
-                        className={`w-full resize-y text-sm ${errors.explanation ? 'border-red-500/50' : ''}`}
+                        className={`w-full resize-y text-sm ${
+                          errors.explanation ? 'border-red-500/50' : ''
+                        }`}
                         style={{ minHeight: '64px' }}
                       />
                       {errors.explanation && (
@@ -596,6 +694,7 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                   </motion.div>
                 )}
 
+                {/* Step 2: Review */}
                 {step === 2 && (
                   <motion.div
                     key="step2"
@@ -605,11 +704,16 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                     transition={{ duration: 0.2 }}
                     className="space-y-4"
                   >
-                    <p className="text-xs text-white/30 mb-2">Preview how your question will appear</p>
+                    <p className="text-xs text-white/30 mb-2">
+                      Preview how your question will appear
+                    </p>
 
                     <div
                       className="rounded-xl p-5"
-                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                      style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
                     >
                       <div className="flex items-center gap-2 flex-wrap mb-3">
                         <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
@@ -641,11 +745,6 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                                 className="w-full h-auto max-h-[320px] object-cover"
                                 loading="lazy"
                               />
-                              {form.passage_image_caption.trim() && (
-                                <figcaption className="px-3 py-2 text-xs text-white/40">
-                                  {form.passage_image_caption}
-                                </figcaption>
-                              )}
                             </figure>
                           )}
 
@@ -658,37 +757,53 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
                       )}
 
                       <p className="text-sm text-white/80 font-medium mb-4">
-                        {form.question_text || <span className="text-white/20 italic">No question text</span>}
+                        {form.question_text || (
+                          <span className="text-white/20 italic">No question text</span>
+                        )}
                       </p>
 
                       <div className="space-y-2">
-                        {form.options.filter(o => o.text.trim()).map(opt => {
-                          const isCorrect = opt.key === form.correct_answer;
-                          return (
-                            <div
-                              key={opt.key}
-                              className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                                isCorrect ? 'border-green-500/30 bg-green-500/5' : 'border-white/5 bg-white/[0.02]'
-                              }`}
-                            >
-                              <span
-                                className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold border-2 shrink-0 ${
-                                  isCorrect ? 'bg-green-500 border-green-500 text-white' : 'border-white/20 text-white/40'
+                        {form.options
+                          .filter(o => o.text.trim())
+                          .map(opt => {
+                            const isCorrect = opt.key === form.correct_answer;
+                            return (
+                              <div
+                                key={opt.key}
+                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                  isCorrect
+                                    ? 'border-green-500/30 bg-green-500/5'
+                                    : 'border-white/5 bg-white/[0.02]'
                                 }`}
                               >
-                                {opt.key}
-                              </span>
-                              <span className="text-sm text-white/70">{opt.text}</span>
-                              {isCorrect && <span className="ml-auto text-green-400 text-xs font-bold">✓ Correct</span>}
-                            </div>
-                          );
-                        })}
+                                <span
+                                  className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold border-2 shrink-0 ${
+                                    isCorrect
+                                      ? 'bg-green-500 border-green-500 text-white'
+                                      : 'border-white/20 text-white/40'
+                                  }`}
+                                >
+                                  {opt.key}
+                                </span>
+                                <span className="text-sm text-white/70">{opt.text}</span>
+                                {isCorrect && (
+                                  <span className="ml-auto text-green-400 text-xs font-bold">
+                                    ✓ Correct
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                       </div>
 
                       {form.explanation.trim() && (
                         <div className="mt-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
-                          <p className="text-xs text-indigo-300 font-bold mb-1">Explanation</p>
-                          <p className="text-sm text-white/60 leading-relaxed">{form.explanation}</p>
+                          <p className="text-xs text-indigo-300 font-bold mb-1">
+                            Explanation
+                          </p>
+                          <p className="text-sm text-white/60 leading-relaxed">
+                            {form.explanation}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -697,6 +812,7 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
               </AnimatePresence>
             </div>
 
+            {/* Footer */}
             <div
               className="px-6 py-4 shrink-0 flex items-center justify-between"
               style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
@@ -704,7 +820,8 @@ export default function QuestionEditor({ open, onClose, onSave, editQuestion }: 
               <div className="text-xs text-white/15">
                 {Object.keys(errors).length > 0 && (
                   <span className="text-red-400 font-medium">
-                    {Object.keys(errors).length} field{Object.keys(errors).length > 1 ? 's' : ''} need attention
+                    {Object.keys(errors).length} field
+                    {Object.keys(errors).length > 1 ? 's' : ''} need attention
                   </span>
                 )}
               </div>
