@@ -261,14 +261,22 @@ export function useTests() {
 
   const deleteTest = useCallback((testId: string) => { saveTests(tests.filter(t => t.id !== testId)); }, [tests, saveTests]);
 
+  const updateTest = useCallback((testId: string, name: string, questionIds: string[]) => {
+    saveTests(tests.map(t => t.id === testId ? { ...t, name, question_ids: questionIds } : t));
+  }, [tests, saveTests]);
+
   // Get all question IDs used across all tests
-  const getUsedQuestionIds = useCallback((): Set<string> => {
+  const getUsedQuestionIds = useCallback((excludeTestId?: string): Set<string> => {
     const used = new Set<string>();
-    tests.forEach(t => t.question_ids.forEach(id => used.add(id)));
+    tests.forEach(t => {
+      if (t.id !== excludeTestId) {
+        t.question_ids.forEach(id => used.add(id));
+      }
+    });
     return used;
   }, [tests]);
 
-  return { tests, createTest, completeTest, resetTest, deleteTest, getUsedQuestionIds };
+  return { tests, createTest, completeTest, resetTest, deleteTest, updateTest, getUsedQuestionIds };
 }
 
 // ─── Attempts ────────────────────────────────────────────────────────────────
