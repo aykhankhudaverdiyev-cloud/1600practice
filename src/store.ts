@@ -166,25 +166,60 @@ type Listener = () => void;
 
 class QuestionStore {
   private questions: Question[];
+  private deletedIds: Set<string>;
   private listeners: Set<Listener> = new Set();
+
   constructor() {
     const custom = getFromStorage<Question[]>('sat_custom_questions', []);
-    this.questions = [...BUILT_IN_QUESTIONS, ...custom];
+    const deletedArr = getFromStorage<string[]>('sat_deleted_question_ids', []);
+    this.deletedIds = new Set(deletedArr);
+    // Merge built-in (minus deleted) with custom; also apply saved edits to built-ins
+    const editedBuiltins = getFromStorage<Record<string, Partial<Question>>>('sat_edited_builtins', {});
+    const builtins = BUILT_IN_QUESTIONS
+      .filter(q => !this.deletedIds.has(q.id))
+      .map(q => editedBuiltins[q.id] ? { ...q, ...editedBuiltins[q.id] } : q);
+    this.questions = [...builtins, ...custom];
   }
+
   private emit() { this.listeners.forEach(l => l()); }
-  private persist() { saveToStorage('sat_custom_questions', this.questions.filter(q => q.is_custom)); }
+
+  private persist() {
+    saveToStorage('sat_custom_questions', this.questions.filter(q => q.is_custom));
+    saveToStorage('sat_deleted_question_ids', [...this.deletedIds]);
+    // Persist edits to built-in questions
+    const edits: Record<string, Partial<Question>> = {};
+    for (const q of this.questions) {
+      if (!q.is_custom) {
+        const original = BUILT_IN_QUESTIONS.find(bq => bq.id === q.id);
+        if (original && JSON.stringify(original) !== JSON.stringify(q)) {
+          edits[q.id] = q;
+        }
+      }
+    }
+    saveToStorage('sat_edited_builtins', edits);
+  }
+
   getSnapshot = (): Question[] => this.questions;
   subscribe = (listener: Listener) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
+
   addQuestion(q: Omit<Question, 'id' | 'is_custom' | 'created_at'>) {
     const newQ: Question = { ...q, id: 'custom_' + generateId(), is_custom: true, created_at: new Date().toISOString() };
     this.questions = [...this.questions, newQ]; this.persist(); this.emit(); return newQ;
   }
+
   updateQuestion(id: string, updates: Partial<Omit<Question, 'id'>>) {
     this.questions = this.questions.map(q => q.id === id ? { ...q, ...updates } : q);
     this.persist(); this.emit();
   }
-  deleteQuestion(id: string) { this.questions = this.questions.filter(q => q.id !== id); this.persist(); this.emit(); }
+
+  deleteQuestion(id: string) {
+    this.deletedIds.add(id);
+    this.questions = this.questions.filter(q => q.id !== id);
+    this.persist(); this.emit();
+  }
+
   getById(id: string): Question | undefined { return this.questions.find(q => q.id === id); }
+
   duplicateQuestion(id: string) {
     const o = this.getById(id); if (!o) return;
     const c: Question = { ...o, id: 'custom_' + generateId(), question_text: o.question_text + ' (Copy)', is_custom: true, created_at: new Date().toISOString() };
