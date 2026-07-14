@@ -6,6 +6,9 @@ export interface Question {
   difficulty: 'easy' | 'medium' | 'hard';
   question_text: string;
   passage_text?: string;
+  passage_image_url?: string;
+  passage_image_alt?: string;
+  passage_image_caption?: string;
   options: { key: string; text: string }[];
   correct_answer: string;
   correct_value?: string;
