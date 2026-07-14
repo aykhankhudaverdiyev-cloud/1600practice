@@ -490,14 +490,12 @@ export default function QuestionBank() {
                           >
                             📋 Duplicate
                           </button>
-                          {q.is_custom && (
-                            <button
-                              onClick={() => setDeleteTarget(q)}
-                              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-red-400/40 hover:text-red-400 bg-red-500/[0.03] hover:bg-red-500/[0.06] transition-all ml-auto"
-                            >
-                              🗑️ Delete
-                            </button>
-                          )}
+                          <button
+                            onClick={() => setDeleteTarget(q)}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-red-400/40 hover:text-red-400 bg-red-500/[0.03] hover:bg-red-500/[0.06] transition-all ml-auto"
+                          >
+                            🗑️ Delete
+                          </button>
                         </div>
                       </div>
                     </motion.div>
