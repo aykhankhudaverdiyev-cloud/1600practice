@@ -182,6 +182,13 @@ export default function Dashboard() {
                       </button>
                     )}
                     <button
+                      onClick={() => navigate(`/builder/${test.id}`)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/5 transition-all text-sm"
+                      title="Edit test"
+                    >
+                      ✏️
+                    </button>
+                    <button
                       onClick={() => handleDelete(test.id)}
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-white/15 hover:text-red-400 hover:bg-red-500/5 transition-all text-sm"
                       title="Delete test"
