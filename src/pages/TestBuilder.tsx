@@ -1,20 +1,41 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Card3D from '../components/Card3D';
 import { useQuestions, useTests, showToast } from '../store';
 
 export default function TestBuilder() {
+  const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
   const allQuestions = useQuestions();
-  const { createTest, getUsedQuestionIds } = useTests();
-  const usedIds = getUsedQuestionIds();
+  const { tests, createTest, updateTest, getUsedQuestionIds } = useTests();
+  
+  const isEdit = !!testId;
+  const editingTest = tests.find(t => t.id === testId);
+
+  const usedIds = getUsedQuestionIds(testId);
   // Filter out questions already used in other tests
   const questions = allQuestions.filter(q => !usedIds.has(q.id));
+
   const [name, setName] = useState('');
   const [selectedModule, setSelectedModule] = useState('All');
   const [selectedDiff, setSelectedDiff] = useState('All');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (isEdit && editingTest) {
+      setName(editingTest.name);
+      setSelectedIds(new Set(editingTest.question_ids));
+    } else if (isEdit && !editingTest && tests.length > 0) {
+      // Test ID provided but not found in tests list
+      showToast('Test not found', 'error');
+      navigate('/builder');
+    } else if (!isEdit) {
+      // Reset state for create mode
+      setName('');
+      setSelectedIds(new Set());
+    }
+  }, [isEdit, editingTest, navigate, tests.length]);
 
   const modules = ['All', ...new Set(questions.map(q => q.module))];
   const difficulties = ['All', 'easy', 'medium', 'hard'];
@@ -42,21 +63,30 @@ export default function TestBuilder() {
     }
   };
 
-  const handleCreate = () => {
+  const handleSave = () => {
     if (!name.trim()) { showToast('Please enter a test name', 'error'); return; }
     if (selectedIds.size === 0) { showToast('Select at least one question', 'error'); return; }
-    const test = createTest(name.trim(), [...selectedIds]);
-    showToast(`Test "${name}" created with ${selectedIds.size} questions!`);
-    navigate(`/practice/${test.id}`);
+    
+    if (isEdit) {
+      updateTest(testId!, name.trim(), [...selectedIds]);
+      showToast(`Test "${name}" updated!`);
+      navigate('/');
+    } else {
+      const test = createTest(name.trim(), [...selectedIds]);
+      showToast(`Test "${name}" created with ${selectedIds.size} questions!`);
+      navigate(`/practice/${test.id}`);
+    }
   };
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-3xl font-black text-white mb-2">
-          <span className="gradient-text">Test</span> Builder
+          <span className="gradient-text">{isEdit ? 'Edit' : 'Test'}</span> {isEdit ? 'Test' : 'Builder'}
         </h1>
-        <p className="text-white/40 text-sm mb-8">Create a custom practice test from the question bank.</p>
+        <p className="text-white/40 text-sm mb-8">
+          {isEdit ? 'Modify your custom test details and question selection.' : 'Create a custom practice test from the question bank.'}
+        </p>
       </motion.div>
 
       {/* Test Name */}
@@ -166,7 +196,7 @@ export default function TestBuilder() {
         })}
       </div>
 
-      {/* Create Button */}
+      {/* Save Button */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -174,11 +204,11 @@ export default function TestBuilder() {
         className="sticky bottom-6 flex justify-center"
       >
         <button
-          onClick={handleCreate}
+          onClick={handleSave}
           disabled={selectedIds.size === 0 || !name.trim()}
           className="glow-button px-10 py-4 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Create Test with {selectedIds.size} Question{selectedIds.size !== 1 ? 's' : ''} →
+          {isEdit ? 'Save Changes' : `Create Test with ${selectedIds.size} Question${selectedIds.size !== 1 ? 's' : ''} →`}
         </button>
       </motion.div>
     </div>
